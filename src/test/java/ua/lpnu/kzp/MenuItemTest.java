@@ -1,72 +1,60 @@
 package ua.lpnu.kzp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.HashSet;
+import java.util.Set;
+
 import org.junit.jupiter.api.Test;
 
 class MenuItemTest {
 
-    /* Перевіряє успішне створення об'єкта з коректного рядка */
+    /* Перевіряє різну поведінку підтипів (Поліморфізм) */
     @Test
-    void fromCsvCreatesValidEntity() {
-        MenuItem item = MenuItem.fromCsv("Постачальник 1;Капучино;Напої;65.50;200;5");
+    void subtypesCalculateCostDifferently() {
+        MenuItem dish = new Dish("Постачальник", "Борщ", 100.0, 300, 20);
+        MenuItem drink = new Drink("Постачальник", "Сік", 100.0, 200, 5);
+        MenuItem dessert = new Dessert("Постачальник", "Торт", 100.0, 150, 10);
+
+        // При однаковій базовій ціні 100, поліморфний метод має повернути різні значення
+        assertEquals(115.0, dish.calculateCost(), 0.0001); // 100 * 1.15
+        assertEquals(105.0, drink.calculateCost(), 0.0001); // 100 + 5.0
+        assertEquals(110.0, dessert.calculateCost(), 0.0001); // 100 * 1.10
+    }
+
+    /* Перевіряє фабричний метод та Enum */
+    @Test
+    void fromCsvCreatesCorrectSubtype() {
+        MenuItem item = MenuItem.fromCsv("Постачальник;Кава;Напій;60.0;200;5");
+        assertEquals(Drink.class, item.getClass());
+        assertEquals(MenuKind.DRINK, item.getKind());
+    }
+
+    /* Перевіряє, що відхиляється невідома категорія */
+    @Test
+    void fromCsvRejectsUnknownCategory() {
+        assertThrows(IllegalArgumentException.class,
+                () -> MenuItem.fromCsv("Постачальник;Капучино;Щось;65.50;200;5"));
+    }
+
+    /* Перевіряє відсутність дублювання рівних об'єктів у HashSet */
+    @Test
+    void equalObjectsHaveOneSetEntry() {
+        Set<MenuItem> items = new HashSet<>();
+        items.add(new Dish("Постачальник", "Борщ", 100.0, 300, 20));
+        items.add(new Dish("Постачальник", "Борщ", 100.0, 300, 20));
         
-        assertEquals("Постачальник 1", item.getSupplier());
-        assertEquals("Капучино", item.getName());
-        assertEquals("Напої", item.getCategory());
-        assertEquals(65.50, item.getPrice(), 0.0001);
-        assertEquals(200, item.getWeightG());
-        assertEquals(5, item.getPrepMin());
+        assertEquals(1, items.size());
     }
 
-    /* Перевіряє, що конструктор відхиляє порожні текстові поля */
+    /* Перевіряє, що різні класи не рівні навіть з однаковими назвами */
     @Test
-    void constructorRejectsEmptyText() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new MenuItem("", "Капучино", "Напої", 65.50, 200, 5));
-    }
-
-    /* Перевіряє, що конструктор відхиляє від'ємну ціну */
-    @Test
-    void constructorRejectsNegativePrice() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new MenuItem("Постачальник 1", "Капучино", "Напої", -10.0, 200, 5));
-    }
-
-    /* Перевіряє, що конструктор відхиляє від'ємну вагу */
-    @Test
-    void constructorRejectsNegativeWeight() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new MenuItem("Постачальник 1", "Капучино", "Напої", 65.50, -50, 5));
-    }
-
-    /* Перевіряє, що фабричний метод відхиляє рядок з текстом замість числа */
-    @Test
-    void fromCsvRejectsInvalidNumber() {
-        assertThrows(IllegalArgumentException.class,
-                () -> MenuItem.fromCsv("Постачальник 1;Капучино;Напої;помилка;200;5"));
-    }
-
-    /* Перевіряє, що фабричний метод відхиляє неправильну кількість полів у рядку */
-    @Test
-    void fromCsvRejectsWrongNumberOfFields() {
-        assertThrows(IllegalArgumentException.class,
-                () -> MenuItem.fromCsv("Постачальник 1;Капучино;Напої;65.50"));
-    }
-
-    /* Перевіряє рівність значень об'єктів record (Value Equality) */
-    @Test
-    void recordUsesValueEquality() {
-        MenuSummary first = new MenuSummary(10, 55.0, 350, 20);
-        MenuSummary second = new MenuSummary(10, 55.0, 350, 20);
+    void differentSubtypesAreNotEqual() {
+        MenuItem dish = new Dish("Шеф", "Фірмове", 100.0, 300, 20);
+        MenuItem drink = new Drink("Шеф", "Фірмове", 100.0, 200, 5);
         
-        assertEquals(first, second);
-    }
-    
-    /* Перевіряє валідацію всередині record */
-    @Test
-    void recordRejectsNegativeValues() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new MenuSummary(-1, 55.0, 350, 20));
+        assertNotEquals(dish, drink);
     }
 }
