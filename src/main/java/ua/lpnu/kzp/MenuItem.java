@@ -58,22 +58,24 @@ public abstract class MenuItem {
     }
 
     /** Фабричний метод: генерує правильний підтип на основі категорії. */
+   /** Фабричний метод: генерує правильний підтип на основі категорії. */
     public static MenuItem fromCsv(String line) {
         String[] parts = line.split(";");
         if (parts.length != 6) {
             throw new IllegalArgumentException("Неправильна кількість полів");
         }
-        String supplier = parts[0].trim();
-        String name = parts[1].trim();
-        String category = parts[2].trim().toLowerCase(Locale.ROOT);
-        double basePrice = Double.parseDouble(parts[3].trim());
-        int weight = Integer.parseInt(parts[4].trim());
-        int prepTime = Integer.parseInt(parts[5].trim());
+        String supplier = parts[0].strip();
+        String name = parts[1].strip();
+        // Очищаємо від прихованого BOM та нерозривних пробілів
+        String category = parts[2].replace("\uFEFF", "").strip().toLowerCase(Locale.ROOT);
+        double basePrice = Double.parseDouble(parts[3].strip());
+        int weight = Integer.parseInt(parts[4].strip());
+        int prepTime = Integer.parseInt(parts[5].strip());
 
         return switch (category) {
-            case "страва" -> new Dish(supplier, name, basePrice, weight, prepTime);
-            case "напій" -> new Drink(supplier, name, basePrice, weight, prepTime);
-            case "десерт" -> new Dessert(supplier, name, basePrice, weight, prepTime);
+            case "страва", "страви", "перші страви" -> new Dish(supplier, name, basePrice, weight, prepTime);
+            case "напій", "напої" -> new Drink(supplier, name, basePrice, weight, prepTime);
+            case "десерт", "десерти" -> new Dessert(supplier, name, basePrice, weight, prepTime);
             default -> throw new IllegalArgumentException("Невідома категорія: " + category);
         };
     }
