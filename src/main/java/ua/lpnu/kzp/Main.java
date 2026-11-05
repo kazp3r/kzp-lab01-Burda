@@ -18,7 +18,7 @@ public final class Main {
      * @param args аргументи командного рядка
      */
     public static void main(String[] args) {
-        System.setOut(new java.io.PrintStream(new java.io.FileOutputStream(java.io.FileDescriptor.out), true, java.nio.charset.StandardCharsets.UTF_8));
+        
         // Визначаємо шляхи до файлів
         Path inputPath = Path.of("data", "input.csv");
         Path outputPath = Path.of("out", "report.txt");

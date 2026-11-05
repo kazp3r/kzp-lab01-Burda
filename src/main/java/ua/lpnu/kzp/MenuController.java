@@ -36,7 +36,9 @@ public class MenuController {
                 MenuItem item = MenuItem.fromCsv(line);
                 items.add(item);
                 
-                totalPrice += item.getPrice();
+                // ТУТ ВИКОРИСТОВУЄМО ПОЛІМОРФІЗМ:
+                totalPrice += item.calculateCost(); 
+                
                 maxWeight = Math.max(maxWeight, item.getWeightG());
                 maxPrepTime = Math.max(maxPrepTime, item.getPrepMin());
             } catch (IllegalArgumentException e) {
