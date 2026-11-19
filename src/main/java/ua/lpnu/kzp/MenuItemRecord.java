@@ -107,7 +107,26 @@ public final class MenuItemRecord {
         }
     }
 
+   
+
     /**
+     * Перетворює поліморфний об'єкт {@link MenuItem} у плоский запис {@link MenuItemRecord}
+     * для збереження у сховищі та CSV-експорту.
+     *
+     * @param item об'єкт позиції меню
+     * @return відповідний запис {@link MenuItemRecord}
+     * @throws NullPointerException якщо {@code item} є {@code null}
+     */
+    public static MenuItemRecord fromMenuItem(MenuItem item) {
+        Objects.requireNonNull(item, "Позиція меню не може бути null");
+        return new MenuItemRecord(
+                item.getName(),
+                item.getKind(),
+                item.calculateCost(),
+                item.getWeightG(),
+                item.getPrepMin());
+    }
+     /**
      * Повертає назву страви.
      *
      * @return назва страви
