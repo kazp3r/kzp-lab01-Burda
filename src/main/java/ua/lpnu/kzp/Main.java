@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 /**
- * Головний клас програми для лабораторної роботи № 2 (Варіант 5: Меню кафе).
+ * Головний клас програми для лабораторної роботи № 5 (Варіант 5: Меню кафе).
  */
 public final class Main {
 
@@ -18,19 +18,17 @@ public final class Main {
      * @param args аргументи командного рядка
      */
     public static void main(String[] args) {
-        
-        // Визначаємо шляхи до файлів
         Path inputPath = Path.of("data", "input.csv");
         Path outputPath = Path.of("out", "report.txt");
+        Path csvExportPath = Path.of("target", "menu-export.csv");
 
-        // Створюємо контролер і запускаємо обробку
         MenuController controller = new MenuController();
 
         try {
-            controller.process(inputPath, outputPath);
+            controller.process(inputPath, outputPath, csvExportPath);
         } catch (IOException e) {
             System.err.println("Критична помилка роботи з файлами: " + e.getMessage());
-            System.exit(1); // Завершуємо програму з кодом помилки
+            System.exit(1);
         }
     }
 }

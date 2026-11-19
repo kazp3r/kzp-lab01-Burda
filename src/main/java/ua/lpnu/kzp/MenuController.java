@@ -5,58 +5,78 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.Locale;
 
 /**
- * Контролер для керування процесом обробки меню кафе.
+ * Контролер для керування процесом обробки меню кафе, збереження у сховищі та CSV-експорту.
  */
 public class MenuController {
 
     /**
-     * Читає файл, обробляє записи та генерує звіт.
+     * Читає вхідний файл, обробляє записи за допомогою Stream API та генерує текстовий звіт.
      *
      * @param inputPath  шлях до вхідного файлу
      * @param outputPath шлях до файлу звіту
-     * @throws IOException якщо виникає помилка читання/запису
+     * @throws IOException якщо виникає помилка читання або запису
      */
     public void process(Path inputPath, Path outputPath) throws IOException {
+        process(inputPath, outputPath, null);
+    }
+
+    /**
+     * Читає вхідний файл, виконує потоковий аналіз, зберігає записи в {@link Repository}
+     * та експортує їх у CSV-файл за вказаним шляхом.
+     *
+     * @param inputPath     шлях до вхідного файлу
+     * @param outputPath    шлях до файлу текстового звіту
+     * @param csvExportPath шлях до вихідного CSV-файлу (або {@code null}, якщо експорт не потрібен)
+     * @throws IOException якщо виникає помилка файлової системи або CSV-експорту
+     */
+    public void process(Path inputPath, Path outputPath, Path csvExportPath) throws IOException {
         List<String> lines = Files.readAllLines(inputPath, StandardCharsets.UTF_8);
         List<MenuItem> items = new ArrayList<>();
         List<String> errors = new ArrayList<>();
 
-        double totalPrice = 0.0;
-        int maxWeight = 0;
-        int maxPrepTime = 0;
-
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             try {
-                // Використовуємо наш фабричний метод для створення об'єкта
-                MenuItem item = MenuItem.fromCsv(line);
-                items.add(item);
-                
-                // ТУТ ВИКОРИСТОВУЄМО ПОЛІМОРФІЗМ:
-                totalPrice += item.calculateCost(); 
-                
-                maxWeight = Math.max(maxWeight, item.getWeightG());
-                maxPrepTime = Math.max(maxPrepTime, item.getPrepMin());
+                items.add(MenuItem.fromCsv(line));
             } catch (IllegalArgumentException e) {
-                // Зберігаємо помилку разом із номером рядка (нумерація з 1)
-                errors.add(String.format("Рядок %d: %s", i + 1, e.getMessage()));
+                errors.add(String.format(Locale.ROOT, "Рядок %d: %s", i + 1, e.getMessage()));
             }
         }
 
-        // Обчислюємо середню ціну та створюємо record
-        double avgPrice = items.isEmpty() ? 0.0 : totalPrice / items.size();
-        MenuSummary summary = new MenuSummary(items.size(), avgPrice, maxWeight, maxPrepTime);
+        DoubleSummaryStatistics priceStats = MenuReport.priceStatistics(items);
+        int maxWeight = MenuReport.maxWeight(items);
+        int maxPrepTime = MenuReport.maxPrepTime(items);
+
+        MenuSummary summary = new MenuSummary(
+                items.size(),
+                priceStats.getAverage(),
+                maxWeight,
+                maxPrepTime
+        );
 
         generateReport(summary, errors, outputPath);
+
+        if (csvExportPath != null) {
+            Repository<MenuItemRecord> repository = new Repository<>();
+            for (MenuItem item : items) {
+                repository.add(MenuItemRecord.fromMenuItem(item));
+            }
+            try {
+                CsvExporter.write(csvExportPath, MenuItemRecord.class, repository.all());
+            } catch (DataStorageException exception) {
+                throw new IOException("Помилка CSV-експорту: " + exception.getMessage(), exception);
+            }
+        }
     }
 
     private void generateReport(MenuSummary summary, List<String> errors, Path outputPath) throws IOException {
         StringBuilder report = new StringBuilder();
-        
+
         report.append(String.format(Locale.ROOT, "Коректних записів: %d%n", summary.count()));
         report.append(String.format(Locale.ROOT, "Середня ціна: %.2f грн%n", summary.averagePrice()));
         report.append(String.format(Locale.ROOT, "Найбільша вага: %d г%n", summary.highestWeight()));
@@ -68,11 +88,9 @@ public class MenuController {
         }
 
         String reportText = report.toString();
-        
-        // Виводимо в консоль
+
         System.out.print(reportText);
 
-        // Зберігаємо у файл, обходячи попередження SpotBugs про NullPointer
         Path parent = outputPath.getParent();
         if (parent != null) {
             Files.createDirectories(parent);
